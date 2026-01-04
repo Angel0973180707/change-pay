@@ -1,1 +1,768 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3d2e" />
+  <title>匯差計算｜TWD / HKD → RMB（固定匯 4.9）</title>
 
+  <!-- ✅ 外連：PWA manifest + icon -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <style>
+    :root{
+      --bg:#0b3d2e;
+      --card:#ffffff;
+      --text:#102018;
+      --muted:#607067;
+      --line:#e6eee9;
+      --soft:#f4faf7;
+      --accent:#1f7a5b;
+      --danger:#b42318;
+      --ok:#067647;
+      --shadow:0 10px 24px rgba(16,32,24,.08);
+      --radius:18px;
+      font-synthesis-weight:none;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg, rgba(11,61,46,.08), rgba(11,61,46,0)) , #f7fbf9;
+    }
+    .topbar{
+      position:sticky; top:0; z-index:5;
+      background:rgba(247,251,249,.88);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .brand{
+      max-width:980px; margin:0 auto;
+      padding:14px 16px;
+      display:flex; gap:12px; align-items:center;
+    }
+    .logo-dot{
+      width:14px;height:14px;border-radius:999px;
+      background:var(--bg);
+      box-shadow:0 0 0 6px rgba(11,61,46,.12);
+      flex:0 0 auto;
+    }
+    .title .h1{font-size:18px;font-weight:900;letter-spacing:.4px}
+    .title .sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
+
+    .wrap{max-width:980px;margin:0 auto;padding:18px 16px 36px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin:14px 0;
+    }
+    h2{margin:0 0 12px;font-size:16px}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+    .muted{color:var(--muted);text-align:center;padding:18px 0}
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:14px;
+    }
+    @media (max-width:760px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .field span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .field input{
+      width:100%;
+      padding:12px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--soft);
+      outline:none;
+      font-size:16px;
+    }
+    .field input:focus{
+      border-color: rgba(31,122,91,.55);
+      box-shadow: 0 0 0 4px rgba(31,122,91,.12);
+      background:#fff;
+    }
+
+    .seg{display:flex; gap:8px; flex-wrap:wrap}
+    .seg-btn{
+      flex:1;
+      border:1px solid var(--line);
+      background:var(--soft);
+      padding:10px 10px;
+      border-radius:14px;
+      font-weight:900;
+      cursor:pointer;
+      min-width:140px;
+    }
+    .seg-btn.active{
+      background:rgba(31,122,91,.10);
+      border-color:rgba(31,122,91,.35);
+      color:var(--accent);
+    }
+    .seg-btn.mini{
+      min-width:0;
+      flex:0 0 auto;
+      padding:8px 10px;
+      font-weight:800;
+      border-radius:12px;
+    }
+
+    .panel{margin-top:14px}
+    .actions{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      padding:10px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .btn.primary{background:var(--bg);color:#fff;border-color:var(--bg)}
+    .btn.ghost{background:transparent}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+    @media (max-width:760px){
+      .kpis{grid-template-columns:1fr}
+    }
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:linear-gradient(180deg, #fff, #fbfdfc);
+    }
+    .kpi-label{font-size:12px;color:var(--muted);line-height:1.35}
+    .kpi-value{margin-top:8px;font-size:18px;font-weight:1000}
+
+    .alert{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    .alert.ok{border-color:rgba(6,118,71,.25); background:rgba(6,118,71,.06)}
+    .alert.bad{border-color:rgba(180,35,24,.25); background:rgba(180,35,24,.06)}
+    .alert b{display:block;margin-bottom:4px}
+
+    details{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+    summary{cursor:pointer;font-weight:900}
+    .logic{margin-top:10px;font-size:13px;line-height:1.65}
+
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;white-space:nowrap}
+    th{background:#f6fbf8;color:var(--muted)}
+    .record-actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+
+    .foot{padding:10px 2px}
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <div class="title">
+        <div class="h1">匯差計算（TWD / HKD 兩模式）</div>
+        <div class="sub">收款幣別可選：臺幣 or 港幣 → 換人民幣 → 依固定匯率 4.9（TWD/RMB）結算給賣方</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>模式</h2>
+      <div class="seg" id="modeSeg">
+        <button class="seg-btn active" data-mode="TWD" type="button">收臺幣（TWD）</button>
+        <button class="seg-btn" data-mode="HKD" type="button">收港幣（HKD）</button>
+      </div>
+      <div class="hint" id="modeHint">目前：收臺幣（TWD）模式</div>
+    </section>
+
+    <section class="card">
+      <h2>輸入區</h2>
+
+      <div class="grid">
+        <label class="field">
+          <span>固定結算匯率：TWD / RMB</span>
+          <input id="fixedTwdPerRmb" type="number" inputmode="decimal" value="4.9" />
+          <div class="hint">賣方固定（預設 4.9）</div>
+        </label>
+
+        <label class="field">
+          <span>換匯手續費（%）</span>
+          <input id="feePct" type="number" inputmode="decimal" placeholder="例如：0.3" />
+          <div class="hint">可留空；若有 0.3% 就填 0.3</div>
+        </label>
+
+        <label class="field">
+          <span>備註（可選）</span>
+          <input id="note" type="text" placeholder="例如：1/5 A單" />
+        </label>
+      </div>
+
+      <!-- TWD 面板 -->
+      <div class="panel" id="panelTwd">
+        <div class="grid">
+          <label class="field">
+            <span>① 收到臺幣 TWD（實收）</span>
+            <input id="twdIn" type="number" inputmode="decimal" placeholder="例如：400000" />
+          </label>
+
+          <div class="field">
+            <span>② 市場匯率（擇一輸入）</span>
+            <div class="seg">
+              <button class="seg-btn mini active" data-twdmode="twdPerRmb" type="button">TWD / RMB</button>
+              <button class="seg-btn mini" data-twdmode="rmbPerTwd" type="button">RMB / TWD</button>
+            </div>
+            <input id="twdFx" type="number" inputmode="decimal" placeholder="例如：4.65（TWD/RMB）" />
+            <div class="hint" id="twdFxHint">目前：TWD / RMB（1 RMB 值多少 TWD）</div>
+          </div>
+        </div>
+        <div class="hint">
+          這個模式的門檻很直覺：市場 <b>TWD/RMB</b> 若低於 <b>4.9</b>，通常比較容易有匯差空間（仍要扣手續費與波動）。
+        </div>
+      </div>
+
+      <!-- HKD 面板 -->
+      <div class="panel" id="panelHkd" hidden>
+        <div class="grid">
+          <label class="field">
+            <span>① 收到港幣 HKD（實收）</span>
+            <input id="hkdIn" type="number" inputmode="decimal" placeholder="例如：10000" />
+          </label>
+
+          <label class="field">
+            <span>② 市場匯率：TWD / HKD（1 HKD 值多少 TWD）</span>
+            <input id="twdPerHkd" type="number" inputmode="decimal" placeholder="例如：4.05" />
+          </label>
+
+          <div class="field">
+            <span>③ 市場匯率（擇一輸入）</span>
+            <div class="seg">
+              <button class="seg-btn mini active" data-hkdmode="rmbPerHkd" type="button">RMB / HKD</button>
+              <button class="seg-btn mini" data-hkdmode="hkdPerRmb" type="button">HKD / RMB</button>
+            </div>
+            <input id="hkdFx" type="number" inputmode="decimal" placeholder="例如：0.92（RMB/HKD）" />
+            <div class="hint" id="hkdFxHint">目前：RMB / HKD（每 1 HKD 可換到多少 RMB）</div>
+          </div>
+        </div>
+        <div class="hint">
+          這個模式同時吃到兩個市場匯：<b>TWD/HKD</b>（用來決定你要付賣方多少 RMB）＋<b>RMB/HKD</b>（你實際換得到多少 RMB）。
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="calcBtn" class="btn primary" type="button">一鍵計算</button>
+        <button id="saveBtn" class="btn" type="button" disabled>存這筆紀錄</button>
+        <button id="resetBtn" class="btn ghost" type="button">清空</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>結果區</h2>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">你實際可換到 RMB（扣手續費後）</div>
+          <div class="kpi-value" id="rmbGet">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">你應付給賣方 RMB（固定 4.9 結算）</div>
+          <div class="kpi-value" id="rmbPay">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">你的利潤 RMB</div>
+          <div class="kpi-value" id="profitRmb">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">利潤（回推成收款幣別）</div>
+          <div class="kpi-value" id="profitIn">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">利潤 TWD（回推）</div>
+          <div class="kpi-value" id="profitTwd">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">安全門檻（用來判斷正負）</div>
+          <div class="kpi-value" id="threshold">—</div>
+        </div>
+      </div>
+
+      <div class="alert" id="alertBox" hidden></div>
+
+      <details>
+        <summary>看計算邏輯（你用來對帳/說明）</summary>
+        <div class="logic" id="logicText"></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>紀錄</h2>
+      <div class="record-actions">
+        <button id="exportBtn" class="btn" type="button">匯出 CSV</button>
+        <button id="clearLogBtn" class="btn ghost" type="button">清空紀錄</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>時間</th>
+              <th>模式</th>
+              <th>備註</th>
+              <th>收款</th>
+              <th>市場匯（主要）</th>
+              <th>RMB可得</th>
+              <th>RMB應付</th>
+              <th>利潤RMB</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="8" class="muted">尚無紀錄</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hint">紀錄存在本機（localStorage），離線也可用。</div>
+    </section>
+
+    <footer class="foot">
+      <div class="hint">提醒：這是「計算器＋本機紀錄」。若你要真正「可安裝＋離線快取的完整 PWA」，需要額外 2 個小檔案（manifest、sw）。你若要我也一起做成同資料夾版本，我可以再給你那兩個檔案。</div>
+    </footer>
+  </main>
+
+  <script>
+    // ====== utils ======
+    const $ = (id)=>document.getElementById(id);
+    const LOG_KEY = "fx_dual_log_v1";
+
+    const state = {
+      mode: "TWD",        // "TWD" | "HKD"
+      twdFxMode: "twdPerRmb", // "twdPerRmb" | "rmbPerTwd"
+      hkdFxMode: "rmbPerHkd", // "rmbPerHkd" | "hkdPerRmb"
+      lastResult: null
+    };
+
+    function n(v){
+      const x = Number(v);
+      return Number.isFinite(x) ? x : null;
+    }
+    function fmt(x, digits=2){
+      if (!Number.isFinite(x)) return "—";
+      return x.toLocaleString("zh-Hant", {maximumFractionDigits:digits, minimumFractionDigits:digits});
+    }
+    function nowStr(){
+      const d = new Date();
+      const pad = (z)=>String(z).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function showAlert(kind, title, msg){
+      const box = $("alertBox");
+      box.hidden = false;
+      box.className = `alert ${kind}`;
+      box.innerHTML = `<b>${title}</b><div>${msg}</div>`;
+    }
+    function clearAlert(){
+      const box = $("alertBox");
+      box.hidden = true;
+      box.className = "alert";
+      box.textContent = "";
+    }
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ====== mode switch ======
+    function setMode(mode){
+      state.mode = mode;
+      document.querySelectorAll("#modeSeg .seg-btn").forEach(btn=>{
+        btn.classList.toggle("active", btn.dataset.mode === mode);
+      });
+      $("panelTwd").hidden = (mode !== "TWD");
+      $("panelHkd").hidden = (mode !== "HKD");
+      $("modeHint").textContent = mode === "TWD" ? "目前：收臺幣（TWD）模式" : "目前：收港幣（HKD）模式";
+      renderLogic();
+      resetResultsOnly();
+      $("saveBtn").disabled = true;
+      state.lastResult = null;
+      clearAlert();
+    }
+
+    function setTwdFxMode(m){
+      state.twdFxMode = m;
+      document.querySelectorAll("[data-twdmode]").forEach(btn=>{
+        btn.classList.toggle("active", btn.dataset.twdmode === m);
+      });
+      if (m === "twdPerRmb"){
+        $("twdFxHint").textContent = "目前：TWD / RMB（1 RMB 值多少 TWD）";
+        $("twdFx").placeholder = "例如：4.65（TWD/RMB）";
+      } else {
+        $("twdFxHint").textContent = "目前：RMB / TWD（1 TWD 可換到多少 RMB）";
+        $("twdFx").placeholder = "例如：0.215（RMB/TWD）";
+      }
+      renderLogic();
+    }
+
+    function setHkdFxMode(m){
+      state.hkdFxMode = m;
+      document.querySelectorAll("[data-hkdmode]").forEach(btn=>{
+        btn.classList.toggle("active", btn.dataset.hkdmode === m);
+      });
+      if (m === "rmbPerHkd"){
+        $("hkdFxHint").textContent = "目前：RMB / HKD（每 1 HKD 可換到多少 RMB）";
+        $("hkdFx").placeholder = "例如：0.92（RMB/HKD）";
+      } else {
+        $("hkdFxHint").textContent = "目前：HKD / RMB（換算時會自動取倒數）";
+        $("hkdFx").placeholder = "例如：1.09（HKD/RMB）";
+      }
+      renderLogic();
+    }
+
+    // ====== core math ======
+    function getTwdPerRmbFromInput(val, mode){
+      // returns TWD per RMB
+      if (!Number.isFinite(val) || val <= 0) return null;
+      if (mode === "twdPerRmb") return val;
+      // rmbPerTwd -> twdPerRmb = 1 / (rmbPerTwd)
+      return 1 / val;
+    }
+
+    function getRmbPerHkdFromInput(val, mode){
+      // returns RMB per HKD
+      if (!Number.isFinite(val) || val <= 0) return null;
+      if (mode === "rmbPerHkd") return val;
+      // hkdPerRmb -> rmbPerHkd = 1 / (hkdPerRmb)
+      return 1 / val;
+    }
+
+    function calc(){
+      const fixedTwdPerRmb = n($("fixedTwdPerRmb").value) ?? 4.9;
+      const feePct = n($("feePct").value) ?? 0;
+      const note = ($("note").value || "").trim();
+
+      const errors = [];
+      if (!fixedTwdPerRmb || fixedTwdPerRmb <= 0) errors.push("固定匯率（TWD/RMB）必須 > 0。");
+      if (feePct < 0) errors.push("手續費% 不能是負數。");
+
+      let rmbGet=null, rmbPay=null, profitRmb=null, profitIn=null, profitTwd=null, thresholdText="—";
+      let modeLabel="", inAmount=null, marketMainLabel="", marketMainValue=null;
+
+      if (state.mode === "TWD"){
+        modeLabel = "收TWD";
+        const TWD = n($("twdIn").value);
+        const fxInput = n($("twdFx").value);
+
+        if (!TWD || TWD <= 0) errors.push("請填正確的 TWD 實收金額。");
+        if (!fxInput || fxInput <= 0) errors.push("請填市場匯率（TWD/RMB 或 RMB/TWD）。");
+
+        const twdPerRmb_m = getTwdPerRmbFromInput(fxInput, state.twdFxMode);
+        if (!twdPerRmb_m) errors.push("市場匯率換算失敗，請檢查輸入。");
+
+        if (errors.length){
+          showAlert("bad","資料還差一點點", errors.join(" "));
+          $("saveBtn").disabled = true;
+          return null;
+        }
+
+        // Market: TWD -> RMB
+        const rmbGetGross = TWD / twdPerRmb_m;
+        rmbGet = rmbGetGross * (1 - feePct/100);
+
+        // Pay seller based on fixed 4.9
+        rmbPay = TWD / fixedTwdPerRmb;
+
+        profitRmb = rmbGet - rmbPay;
+
+        // Back-calc profit to TWD
+        profitTwd = profitRmb * twdPerRmb_m;
+        profitIn = profitTwd;
+
+        // Threshold: market twdPerRmb must be < fixed (roughly positive)
+        thresholdText = `市場 TWD/RMB < ${fmt(fixedTwdPerRmb, 6)} 才比較容易為正（仍須扣手續費）`;
+        inAmount = TWD;
+        marketMainLabel = "市場 TWD/RMB";
+        marketMainValue = twdPerRmb_m;
+
+        renderResults(rmbGet, rmbPay, profitRmb, profitIn, profitTwd, thresholdText, "TWD");
+
+        const kind = profitRmb >= 0 ? "ok" : "bad";
+        showAlert(kind,
+          profitRmb >= 0 ? "這筆是正的 ✅" : "這筆可能賠到 ⚠️",
+          `市場 ${marketMainLabel} = ${fmt(marketMainValue,6)}；固定 = ${fmt(fixedTwdPerRmb,6)}；手續費 = ${fmt(feePct,2)}%。`
+        );
+
+        state.lastResult = {
+          time: nowStr(),
+          mode: "TWD",
+          note,
+          inAmount: TWD,
+          marketMain: `${marketMainLabel} ${fmt(marketMainValue,6)}`,
+          fixedTwdPerRmb,
+          feePct,
+          rmbGet, rmbPay, profitRmb
+        };
+        $("saveBtn").disabled = false;
+        return state.lastResult;
+      }
+
+      // HKD mode
+      modeLabel = "收HKD";
+      const HKD = n($("hkdIn").value);
+      const twdPerHkd = n($("twdPerHkd").value);
+      const fxInput = n($("hkdFx").value);
+
+      if (!HKD || HKD <= 0) errors.push("請填正確的 HKD 實收金額。");
+      if (!twdPerHkd || twdPerHkd <= 0) errors.push("請填正確的 TWD/HKD 市場匯率。");
+      if (!fxInput || fxInput <= 0) errors.push("請填市場匯率（RMB/HKD 或 HKD/RMB）。");
+
+      const rmbPerHkd = getRmbPerHkdFromInput(fxInput, state.hkdFxMode);
+      if (!rmbPerHkd) errors.push("市場匯率換算失敗，請檢查輸入。");
+
+      if (errors.length){
+        showAlert("bad","資料還差一點點", errors.join(" "));
+        $("saveBtn").disabled = true;
+        return null;
+      }
+
+      // Market: HKD -> RMB
+      const rmbGetGross = HKD * rmbPerHkd;
+      rmbGet = rmbGetGross * (1 - feePct/100);
+
+      // Pay seller: HKD -> TWD by market, then TWD -> RMB by fixed
+      const TWD = HKD * twdPerHkd;
+      rmbPay = TWD / fixedTwdPerRmb;
+
+      profitRmb = rmbGet - rmbPay;
+
+      // Back-calc profit to HKD & TWD (approx)
+      profitIn = profitRmb / rmbPerHkd; // HKD
+      profitTwd = profitIn * twdPerHkd;
+
+      // Threshold: rmbPerHkd must be > twdPerHkd / fixed
+      const threshold = twdPerHkd / fixedTwdPerRmb;
+      thresholdText = `需要 市場 RMB/HKD > ${fmt(threshold,6)} 才會為正（仍須扣手續費）`;
+
+      inAmount = HKD;
+      marketMainLabel = "市場 RMB/HKD";
+      marketMainValue = rmbPerHkd;
+
+      renderResults(rmbGet, rmbPay, profitRmb, profitIn, profitTwd, thresholdText, "HKD");
+
+      const kind = profitRmb >= 0 ? "ok" : "bad";
+      showAlert(kind,
+        profitRmb >= 0 ? "這筆是正的 ✅" : "這筆可能賠到 ⚠️",
+        `市場 RMB/HKD = ${fmt(rmbPerHkd,6)}；TWD/HKD = ${fmt(twdPerHkd,6)}；固定 TWD/RMB = ${fmt(fixedTwdPerRmb,6)}；手續費 = ${fmt(feePct,2)}%。`
+      );
+
+      state.lastResult = {
+        time: nowStr(),
+        mode: "HKD",
+        note,
+        inAmount: HKD,
+        marketMain: `RMB/HKD ${fmt(rmbPerHkd,6)} ; TWD/HKD ${fmt(twdPerHkd,6)}`,
+        fixedTwdPerRmb,
+        feePct,
+        rmbGet, rmbPay, profitRmb
+      };
+      $("saveBtn").disabled = false;
+      return state.lastResult;
+    }
+
+    function renderResults(rmbGet, rmbPay, profitRmb, profitIn, profitTwd, thresholdText, inCcy){
+      $("rmbGet").textContent = `${fmt(rmbGet, 2)} RMB`;
+      $("rmbPay").textContent = `${fmt(rmbPay, 2)} RMB`;
+      $("profitRmb").textContent = `${fmt(profitRmb, 2)} RMB`;
+
+      if (inCcy === "TWD"){
+        $("profitIn").textContent = `${fmt(profitIn, 0)} TWD`;
+      } else {
+        $("profitIn").textContent = `${fmt(profitIn, 2)} HKD`;
+      }
+      $("profitTwd").textContent = `${fmt(profitTwd, 0)} TWD`;
+      $("threshold").textContent = thresholdText;
+    }
+
+    function resetResultsOnly(){
+      $("rmbGet").textContent = "—";
+      $("rmbPay").textContent = "—";
+      $("profitRmb").textContent = "—";
+      $("profitIn").textContent = "—";
+      $("profitTwd").textContent = "—";
+      $("threshold").textContent = "—";
+    }
+
+    function resetAll(){
+      $("twdIn").value = "";
+      $("twdFx").value = "";
+      $("hkdIn").value = "";
+      $("twdPerHkd").value = "";
+      $("hkdFx").value = "";
+      $("feePct").value = "";
+      $("note").value = "";
+      $("saveBtn").disabled = true;
+      state.lastResult = null;
+      resetResultsOnly();
+      clearAlert();
+    }
+
+    // ====== log ======
+    function loadLog(){
+      try{
+        const raw = localStorage.getItem(LOG_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      }catch(e){
+        return [];
+      }
+    }
+    function saveLog(arr){
+      localStorage.setItem(LOG_KEY, JSON.stringify(arr));
+    }
+    function renderLog(){
+      const body = $("logBody");
+      const log = loadLog();
+      if (!log.length){
+        body.innerHTML = `<tr><td colspan="8" class="muted">尚無紀錄</td></tr>`;
+        return;
+      }
+      body.innerHTML = log.map(row=>{
+        const inText = row.mode === "TWD"
+          ? `${fmt(row.inAmount,0)} TWD`
+          : `${fmt(row.inAmount,2)} HKD`;
+        return `
+          <tr>
+            <td>${row.time}</td>
+            <td>${row.mode}</td>
+            <td>${escapeHtml(row.note || "")}</td>
+            <td>${inText}</td>
+            <td>${escapeHtml(row.marketMain || "")}</td>
+            <td>${fmt(row.rmbGet,2)}</td>
+            <td>${fmt(row.rmbPay,2)}</td>
+            <td>${fmt(row.profitRmb,2)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+    function exportCSV(){
+      const log = loadLog();
+      if (!log.length){
+        showAlert("bad","沒有資料可匯出","請先存至少一筆紀錄。");
+        return;
+      }
+      const header = ["time","mode","note","inAmount","marketMain","fixedTwdPerRmb","feePct","rmbGet","rmbPay","profitRmb"];
+      const lines = [header.join(",")].concat(
+        log.map(r => header.map(k=>{
+          const v = r[k] ?? "";
+          const safe = String(v).replaceAll('"','""');
+          return `"${safe}"`;
+        }).join(","))
+      );
+      const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fx-log-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // ====== logic text ======
+    function renderLogic(){
+      const fixed = n($("fixedTwdPerRmb").value) ?? 4.9;
+      if (state.mode === "TWD"){
+        const lines = [
+          `<b>收臺幣（TWD）模式</b>`,
+          `1) 你用市場匯率把 TWD 換成 RMB：<br> <code>RMB_get = TWD ÷ (TWD/RMB_market)</code>（再扣手續費）`,
+          `2) 你用固定匯 4.9 跟賣方結算：<br> <code>RMB_pay = TWD ÷ ${fixed}</code>`,
+          `3) 你的匯差利潤：<br> <code>Profit_RMB = RMB_get − RMB_pay</code>`,
+          `4) 直覺判斷：市場 <code>TWD/RMB_market</code> 越低，相對越容易有空間（仍要扣手續費與波動）。`
+        ];
+        $("logicText").innerHTML = lines.join("<br><br>");
+      } else {
+        const lines = [
+          `<b>收港幣（HKD）模式</b>`,
+          `1) 你用市場匯率把 HKD 換成 RMB：<br> <code>RMB_get = HKD × (RMB/HKD_market)</code>（再扣手續費）`,
+          `2) 你先把 HKD 依市場匯換成 TWD：<br> <code>TWD = HKD × (TWD/HKD_market)</code>`,
+          `3) 再用固定匯 4.9 跟賣方結算：<br> <code>RMB_pay = TWD ÷ ${fixed} = (HKD × TWD/HKD_market) ÷ ${fixed}</code>`,
+          `4) 你的匯差利潤：<br> <code>Profit_RMB = RMB_get − RMB_pay</code>`,
+          `5) 門檻判斷（很實用）：<br> <code>RMB/HKD_market</code> 需要大於 <code>(TWD/HKD_market) ÷ ${fixed}</code> 才會比較容易為正（仍要扣手續費）。`
+        ];
+        $("logicText").innerHTML = lines.join("<br><br>");
+      }
+    }
+
+    // ====== events ======
+    document.addEventListener("click", (e)=>{
+      const modeBtn = e.target.closest("#modeSeg .seg-btn");
+      if (modeBtn) setMode(modeBtn.dataset.mode);
+
+      const twdBtn = e.target.closest("[data-twdmode]");
+      if (twdBtn) setTwdFxMode(twdBtn.dataset.twdmode);
+
+      const hkdBtn = e.target.closest("[data-hkdmode]");
+      if (hkdBtn) setHkdFxMode(hkdBtn.dataset.hkdmode);
+    });
+
+    $("calcBtn").addEventListener("click", ()=>calc());
+
+    $("saveBtn").addEventListener("click", ()=>{
+      const r = state.lastResult ?? calc();
+      if (!r) return;
+      const log = loadLog();
+      log.unshift(r);
+      saveLog(log.slice(0, 300));
+      renderLog();
+      showAlert("ok","已存檔 ✅","這筆已記到本機紀錄（離線也在）。");
+    });
+
+    $("resetBtn").addEventListener("click", resetAll);
+
+    $("exportBtn").addEventListener("click", exportCSV);
+
+    $("clearLogBtn").addEventListener("click", ()=>{
+      localStorage.removeItem(LOG_KEY);
+      renderLog();
+      showAlert("ok","已清空 ✅","本機紀錄已清空。");
+    });
+
+    // init
+    setMode("TWD");
+    setTwdFxMode("twdPerRmb");
+    setHkdFxMode("rmbPerHkd");
+    renderLog();
+    renderLogic();
+
+    // When fixed changes, refresh logic text
+    $("fixedTwdPerRmb").addEventListener("input", renderLogic);
+
+    // ✅ 註冊：Service Worker（sw.js）
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(()=>{});
+      });
+    }
+  </script>
+</body>
+        </html>
